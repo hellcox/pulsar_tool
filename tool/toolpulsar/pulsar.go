@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/go-restruct/restruct"
-	jsoniter "github.com/json-iterator/go"
 	"log"
 	"pulsar-demo/model"
 	"strings"
@@ -22,15 +21,6 @@ func init() {
 }
 
 func Consume(req model.Request) {
-
-	if req.Host == "" {
-		panic("参数错误：host")
-	}
-	if req.Topic == "" {
-		panic("参数错误：topic")
-	}
-	Init(req.Host)
-
 	//使用client对象实例化consumer
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
 		Topic:            req.Topic,
@@ -40,13 +30,9 @@ func Consume(req model.Request) {
 	if err != nil {
 		panic(err)
 	}
-	if req.LogCount {
-		LogCount(1000)
-	}
-
 	topicArr := strings.Split(req.Topic, "/")
 	last := topicArr[len(topicArr)-1]
-	fmt.Println("\n\n\n=====> READ QUEUE <=====", last, time.Now().Format("2006-01-02 15:04:05"), "\n\n\n")
+	fmt.Println("\n=====> READ QUEUE <=====", last, time.Now().Format("2006-01-02 15:04:05"))
 
 	ctx := context.Background()
 	defer consumer.Close()
@@ -76,44 +62,36 @@ func Consume(req model.Request) {
 				resStruct := frestructOnline(ms)
 				_ = resStruct
 				if req.LogMsg {
-					fmt.Println(jsoniter.MarshalToString(resStruct))
+					fmt.Printf("===>%02d [%s] %+v\n", time.Now().Second(), last, resStruct)
 				}
 			} else { // 常规消息
 				resStruct := frestruct(ms)
 				if req.LogMsg {
-					fmt.Println(jsoniter.MarshalToString(resStruct))
+					fmt.Printf("===>%02d [%s] %+v\n", time.Now().Second(), last, resStruct)
 				}
-				//testStr := jsoniter.Get([]byte(resStruct.Payload), "hellcox-test").ToString()
-				//// 不是测试工具的消息
-				//if testStr == "" {
-				//	continue
-				//}
-				//TestCount++
-				//TestLastTime = now.Unix()
-				//if TestCount == 1 {
-				//	TestStartTime = TestLastTime
-				//	fmt.Printf("%-15s\t%v\t%d\t\n", "[开始消费特殊消息]", TestStartTime, TestCount)
-				//}
-				//testArr := strings.Split(testStr, "-")
-				//_ = testArr
-				//if req.Ext == "special" {
-				//	sec, _ := strconv.ParseInt(testArr[1][0:10], 10, 64)
-				//	nsec, _ := strconv.ParseInt(testArr[1][10:], 10, 64)
-				//	sendTime := time.Unix(sec, nsec)
-				//	timeSub := time.Now().Sub(sendTime)
-				//	specialTime = specialTime + timeSub.Milliseconds()
-				//	fmt.Printf("%-15s\tID:%v\t生成时间:%v\t当前时间:%v\t时延:%v\t时延:%vms\n",
-				//		"[特殊消息]",
-				//		testArr[0],
-				//		sendTime.UnixNano(),
-				//		now.UnixNano(),
-				//		timeSub,
-				//		timeSub.Milliseconds())
-				//}
 			}
 		}
 		_ = consumer.Ack(msg)
 	}
+}
+
+func Start(req model.Request) {
+	if req.Host == "" {
+		panic("参数错误：host")
+	}
+	if req.Topic == "" {
+		panic("参数错误：topic")
+	}
+	Init(req.Host)
+	if req.LogCount {
+		LogCount(1000)
+	}
+	topics := strings.Split(req.Topic, ",")
+	for _, topic := range topics {
+		req.Topic = topic
+		go Consume(req)
+	}
+
 }
 
 func Init(host string) {

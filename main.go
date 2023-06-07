@@ -31,7 +31,7 @@ func main() {
 	}
 
 	fmt.Println(jsoniter.MarshalToString(request))
-	go toolpulsar.Consume(*request)
+	go toolpulsar.Start(*request)
 
 	// 优雅关闭，等待关闭信号
 	c := make(chan os.Signal)
