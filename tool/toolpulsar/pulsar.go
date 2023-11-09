@@ -31,9 +31,10 @@ func init() {
 func Consume(req model.Request) {
 	//使用client对象实例化consumer
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
-		Topic:            req.Topic,
-		SubscriptionName: "pulsar_tool",
-		Type:             pulsar.Shared,
+		Topic:                       req.Topic,
+		SubscriptionName:            "pulsar_tool",
+		Type:                        pulsar.Shared,
+		SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
 	})
 	if err != nil {
 		panic(err)
